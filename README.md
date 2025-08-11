@@ -1,6 +1,11 @@
 # Spase Clone
 A simple project to clone the core functionality of Spase.
 
+### Installation 
+```bash
+npm install @flyinghawk/spase-clone
+```
+
 ### Usage
 
 ```ts
