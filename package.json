@@ -1,0 +1,36 @@
+{
+  "name": "@flyinghawk/spase-clone",
+  "version": "0.0.0",
+  "description": "A lightweight and efficient clone utility package",
+  "keywords": [
+    "spase-clone",
+    "clone",
+    "utility",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SurajKharkwal/spase-clone"
+  },
+  "author": "Suraj Kharkwal",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "bun index.ts",
+    "build": "bun build index.ts --outdir dist --bundle --minify && tsc",
+    "clean": "rm -rf ./dist/",
+    "prerelease": "bun run clean && bun run build",
+    "release": "bun publish --access public"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
