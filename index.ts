@@ -42,12 +42,28 @@ function runCommand(command: string, args: string[], cwd?: string): Promise<void
 async function moveFolderContent(srcDir: string, destDir: string) {
   const files = await readdir(srcDir);
   await Promise.all(
-    files.map((file) => fsRename(path.join(srcDir, file), path.join(destDir, file)))
+    files.map(async (file) => await fsRename(path.join(srcDir, file), path.join(destDir, file)))
   );
   await rm(srcDir, { recursive: true, force: true });
+
+  // Remove empty parent folders recursively if needed
+  let currentDir = path.dirname(srcDir);
+  while (currentDir !== destDir) {
+    try {
+      const remainingFiles = await readdir(currentDir);
+      if (remainingFiles.length === 0) {
+        await rm(currentDir, { recursive: true, force: true });
+        currentDir = path.dirname(currentDir);
+      } else {
+        break;
+      }
+    } catch {
+      break;
+    }
+  }
 }
 
-export async function sparceClone(
+export async function sparseClone(
   url: string,
   subDir: string,
   target: string,
@@ -58,7 +74,7 @@ export async function sparceClone(
     throw new Error("Page not found (404)");
   }
 
-  await runCommand("git", ["clone", "--no-checkout", url, target]);
+  await runCommand("git", ["clone", "--filter=blob:none", "--no-checkout", url, target]);
   await runCommand("git", ["sparse-checkout", "init", "--no-cone"], target);
   await runCommand("git", ["sparse-checkout", "set", subDir], target);
   await runCommand("git", ["checkout"], target);
@@ -71,4 +87,3 @@ export async function sparceClone(
     await rm(path.join(target, ".git"), { recursive: true, force: true });
   }
 }
-

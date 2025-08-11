@@ -1,15 +1,15 @@
-# Spase Clone
-A simple project to clone the core functionality of Spase.
+# Sparse Clone
+A cross-platform sparseClone utility that replicates the functionality of `git sparse-checkout`.
 
 ### Installation 
 ```bash
-npm install @flyinghawk/spase-clone
+npm install @flyinghawk/sparse-clone
 ```
 
 ### Usage
 
 ```ts
-    await sparceClone(
+    await sparseClone(
       "https://github.com/user/repo.git",   // GitHub repo URL
       "path/to/subfolder",                  // Subdirectory to sparse clone
       "test",                               // Local folder to clone into
