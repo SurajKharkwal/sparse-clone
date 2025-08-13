@@ -1,34 +1,25 @@
-import { rm, rename as fsRename, readdir } from "fs/promises";
+import { rm, rename as fsRename, readdir, stat } from "fs/promises";
 import path from "path";
 import { spawn } from "node:child_process";
 import https from "https";
 
 async function githubPageExists(url: string): Promise<boolean> {
-  try {
-    const match = url.match(/github\.com[/:]([^/]+)\/([^/]+)(?:\/|$)/);
-    if (!match) return false;
+  const match = url.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?(?:\/|$)/);
+  if (!match) return false;
 
-    const [_, owner, repoRaw] = match;
-    const repo = repoRaw?.replace(/\.git$/, "");
+  const [, owner, repo] = match;
+  const options = {
+    hostname: "api.github.com",
+    path: `/repos/${owner}/${repo}`,
+    method: "GET",
+    headers: { "User-Agent": "space-clone" },
+  };
 
-    const options = {
-      hostname: "api.github.com",
-      path: `/repos/${owner}/${repo}`,
-      method: "GET",
-      headers: { "User-Agent": "space-clone" },
-    };
-
-    return await new Promise<boolean>((resolve) => {
-      const req = https.request(options, (res) => {
-        resolve(res.statusCode === 200);
-      });
-
-      req.on("error", () => resolve(false));
-      req.end();
-    });
-  } catch {
-    return false;
-  }
+  return new Promise((resolve) => {
+    const req = https.request(options, (res) => resolve(res.statusCode === 200));
+    req.on("error", () => resolve(false));
+    req.end();
+  });
 }
 
 function runCommand(command: string, args: string[], cwd?: string): Promise<void> {
@@ -41,17 +32,15 @@ function runCommand(command: string, args: string[], cwd?: string): Promise<void
 
 async function moveFolderContent(srcDir: string, destDir: string) {
   const files = await readdir(srcDir);
-  await Promise.all(
-    files.map(async (file) => await fsRename(path.join(srcDir, file), path.join(destDir, file)))
-  );
+  await Promise.all(files.map((file) => fsRename(path.join(srcDir, file), path.join(destDir, file))));
   await rm(srcDir, { recursive: true, force: true });
 
-  // Remove empty parent folders recursively if needed
+  // Remove empty parent folders up to destDir
   let currentDir = path.dirname(srcDir);
   while (currentDir !== destDir) {
     try {
-      const remainingFiles = await readdir(currentDir);
-      if (remainingFiles.length === 0) {
+      const remaining = await readdir(currentDir);
+      if (remaining.length === 0) {
         await rm(currentDir, { recursive: true, force: true });
         currentDir = path.dirname(currentDir);
       } else {
@@ -63,15 +52,38 @@ async function moveFolderContent(srcDir: string, destDir: string) {
   }
 }
 
+async function checkIfDirectoryExists(dirPath: string): Promise<boolean> {
+  try {
+    const stats = await stat(dirPath);
+    return stats.isDirectory();
+  } catch (error: any) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
 export async function sparseClone(
   url: string,
   subDir: string,
   target: string,
-  delGit: boolean = true,
-  mvToRoot: boolean = true
+  opts: {
+    delGit?: boolean;
+    mvToRoot?: boolean;
+    overrideDir?: boolean;
+  } = {}
 ) {
+  const { delGit = true, mvToRoot = true, overrideDir = false } = opts;
+
   if (!(await githubPageExists(url))) {
     throw new Error("Page not found (404)");
+  }
+
+  if (await checkIfDirectoryExists(target)) {
+    if (overrideDir) {
+      await rm(target, { recursive: true, force: true });
+    } else {
+      throw new Error(`Target directory "${target}" already exists.`);
+    }
   }
 
   await runCommand("git", ["clone", "--filter=blob:none", "--no-checkout", url, target]);
@@ -87,3 +99,4 @@ export async function sparseClone(
     await rm(path.join(target, ".git"), { recursive: true, force: true });
   }
 }
+
