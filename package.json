@@ -1,6 +1,6 @@
 {
   "name": "@flyinghawk/sparse-clone",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A lightweight and efficient clone utility package",
   "keywords": [
     "sparse-clone",

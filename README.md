@@ -16,6 +16,7 @@ await sparseClone(
   "path/to/subfolder",                  // Subdirectory to sparse clone
   "test",                              // Local folder to clone into
   {
+    silent: true                       // Show output on the screen (default: true)
     delGit: true,                      // Delete the .git folder after clone (default: true)
     mvToRoot: true,                    // Move subfolder content to root of target (default: true)
     overrideDir: false                 // Override target directory if exists (default: false)

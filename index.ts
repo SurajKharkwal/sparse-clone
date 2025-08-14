@@ -22,9 +22,9 @@ async function githubPageExists(url: string): Promise<boolean> {
   });
 }
 
-function runCommand(command: string, args: string[], cwd?: string): Promise<void> {
+function runCommand(command: string, args: string[], silent: boolean, cwd?: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, { stdio: "inherit", cwd });
+    const proc = spawn(command, args, { stdio: silent ? "pipe" : "inherit", cwd });
     proc.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`${command} exited with code ${code}`))));
     proc.on("error", reject);
   });
@@ -67,12 +67,13 @@ export async function sparseClone(
   subDir: string,
   target: string,
   opts: {
+    silent?: boolean
     delGit?: boolean;
     mvToRoot?: boolean;
     overrideDir?: boolean;
   } = {}
 ) {
-  const { delGit = true, mvToRoot = true, overrideDir = false } = opts;
+  const { silent = true, delGit = true, mvToRoot = true, overrideDir = false } = opts;
 
   if (!(await githubPageExists(url))) {
     throw new Error("Page not found (404)");
@@ -86,10 +87,10 @@ export async function sparseClone(
     }
   }
 
-  await runCommand("git", ["clone", "--filter=blob:none", "--no-checkout", url, target]);
-  await runCommand("git", ["sparse-checkout", "init", "--no-cone"], target);
-  await runCommand("git", ["sparse-checkout", "set", subDir], target);
-  await runCommand("git", ["checkout"], target);
+  await runCommand("git", ["clone", "--filter=blob:none", "--no-checkout", url, target], silent);
+  await runCommand("git", ["sparse-checkout", "init", "--no-cone"], silent, target);
+  await runCommand("git", ["sparse-checkout", "set", subDir], silent, target);
+  await runCommand("git", ["checkout"], silent, target);
 
   if (mvToRoot) {
     await moveFolderContent(path.join(target, subDir), target);
